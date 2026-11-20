@@ -1,11 +1,6 @@
 import json
 from pathlib import Path
 import pandas as pd
-import json
-from pathlib import Path
-import pandas as pd
-
-
 def load_history(folder):
     """Đọc tất cả file lịch sử nghe nhạc trong folder, trả về 1 DataFrame."""
     folder = Path(folder)
@@ -21,7 +16,7 @@ def load_history(folder):
 
     if not files:
         raise FileNotFoundError(f"Không tìm thấy file lịch sử nghe trong {folder}")
-
+ 
     frames = []
     for f in files:
         with open(f, encoding="utf-8") as fp:
@@ -104,8 +99,3 @@ def summary(df):
         "unique_tracks": df["trackName"].nunique(),
         "avg_per_day": df.groupby("date")["minutes"].sum().mean(),
     }
-s = summary(clean_history(load_history("data")))
-print(f"Tổng lượt nghe: {s['total_plays']}")
-print(f"Tổng giờ nghe: {s['total_hours']:.1f}")
-print(f"Số nghệ sĩ khác nhau: {s['unique_artists']}")
-print(f"Trung bình mỗi ngày (ngày có nghe): {s['avg_per_day']:.0f} phút")
