@@ -6,7 +6,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 from analysis import (load_history, clean_history, summary,
                       plays_by_hour, plays_by_weekday, minutes_by_month,
-                      top_artists, top_tracks)
+                      top_artists, top_tracks, filter_by_date)
 
 
 class MusicApp(tk.Tk):
@@ -15,6 +15,7 @@ class MusicApp(tk.Tk):
         self.title("Phân tích thói quen nghe nhạc Spotify")
         self.geometry("1000x650")
         self.df = None  # dữ liệu sẽ nạp sau khi chọn thư mục
+        self.df_all = None
 
         self.build_top_bar()
         self.build_tabs()
@@ -30,6 +31,14 @@ class MusicApp(tk.Tk):
         self.status = ttk.Label(bar, text="Chưa nạp dữ liệu")
         self.status.pack(side="left", padx=10)
 
+        ttk.Button(bar, text="Bỏ lọc", command=self.reset_filter).pack(side="right")
+        ttk.Button(bar, text="Lọc", command=self.apply_filter).pack(side="right", padx=5)
+        self.end_entry = ttk.Entry(bar, width=11)
+        self.end_entry.pack(side="right")
+        ttk.Label(bar, text="đến").pack(side="right", padx=4)
+        self.start_entry = ttk.Entry(bar, width=11)
+        self.start_entry.pack(side="right")
+        ttk.Label(bar, text="Từ ngày (YYYY-MM-DD):").pack(side="right", padx=4)
     def build_tabs(self):
         self.tabs = ttk.Notebook(self)
         self.tabs.pack(fill="both", expand=True, padx=10, pady=5)
@@ -51,14 +60,11 @@ class MusicApp(tk.Tk):
         if not folder:
             return
         try:
-            self.df = clean_history(load_history(folder))
+            self.df_all = clean_history(load_history(folder))
         except Exception as e:
             messagebox.showerror("Lỗi", f"Không đọc được dữ liệu:\n{e}")
             return
-        self.status.config(text=f"Đã nạp {len(self.df)} lượt nghe")
-        self.show_overview()
-        self.draw_time_chart()
-        self.draw_artists()
+        self.reset_filter()
 
     def show_overview(self):
         s = summary(self.df)
@@ -180,7 +186,36 @@ class MusicApp(tk.Tk):
             self.track_table.delete(row)
         for (track, artist), plays in top_tracks(self.df, n).items():
             self.track_table.insert("", "end", values=(track, artist, plays))
+    def apply_filter(self):
+        if self.df_all is None:
+            messagebox.showinfo("Thông báo", "Hãy chọn thư mục dữ liệu trước.")
+            return
+        try:
+            sub = filter_by_date(self.df_all,
+                                 self.start_entry.get().strip(),
+                                 self.end_entry.get().strip())
+        except Exception:
+            messagebox.showerror("Lỗi", "Ngày không hợp lệ. Nhập dạng YYYY-MM-DD, ví dụ 2025-06-01.")
+            return
+        if sub.empty:
+            messagebox.showwarning("Không có dữ liệu", "Khoảng ngày này không có lượt nghe nào.")
+            return
+        self.df = sub
+        self.refresh_all()
 
+    def reset_filter(self):
+        if self.df_all is None:
+            return
+        self.start_entry.delete(0, "end")
+        self.end_entry.delete(0, "end")
+        self.df = self.df_all
+        self.refresh_all()
+
+    def refresh_all(self):
+        self.status.config(text=f"Đang xem {len(self.df)} / {len(self.df_all)} lượt nghe")
+        self.show_overview()
+        self.draw_time_chart()
+        self.draw_artists()
 
 if __name__ == "__main__":
     MusicApp().mainloop()

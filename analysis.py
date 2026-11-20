@@ -99,3 +99,11 @@ def summary(df):
         "unique_tracks": df["trackName"].nunique(),
         "avg_per_day": df.groupby("date")["minutes"].sum().mean(),
     }
+def filter_by_date(df, start=None, end=None):
+    """Lọc theo khoảng ngày. start, end là chuỗi 'YYYY-MM-DD' (có thể bỏ trống)."""
+    result = df
+    if start:
+        result = result[result["date"] >= pd.to_datetime(start).date()]
+    if end:
+        result = result[result["date"] <= pd.to_datetime(end).date()]
+    return result
